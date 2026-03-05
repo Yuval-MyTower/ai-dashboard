@@ -389,7 +389,7 @@ function renderCharts(data) {
   top8.forEach(co => {
     const pct = Math.max(2, (co.totalBuildings / maxB) * 100);
     const nm  = co.company.replace(/\s*\|.*/, '').trim();
-    bHtml += `<div style="display:flex;align-items:center;gap:8px;direction:rtl">
+    bHtml += `<div style="display:flex;align-items:center;gap:8px;direction:rtl;font-family:'SF Hebrew',-apple-system,BlinkMacSystemFont,sans-serif">
       <span style="flex:0 0 130px;font-size:11px;color:rgba(255,255,255,0.80);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nm}</span>
       <div style="flex:1;background:#3b82f6;opacity:0.85;height:20px;border-radius:4px;width:${pct}%;min-width:4px"></div>
       <span style="flex:0 0 28px;font-size:10px;color:rgba(255,255,255,0.55);text-align:left">${co.totalBuildings}</span>
