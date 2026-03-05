@@ -194,6 +194,73 @@ body { font-family: 'SF Hebrew', -apple-system, BlinkMacSystemFont, 'Segoe UI', 
   color: #94a3b8;
   font-size: 0.95rem;
 }
+
+/* ── Infographic ── */
+#infographic { padding: 20px 32px 0; }
+
+.kpi-row {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.kpi-card {
+  flex: 1;
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 12px;
+  padding: 18px 22px;
+  color: #fff;
+  backdrop-filter: blur(4px);
+}
+.kpi-num {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -.02em;
+}
+.kpi-label {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.60);
+  margin-top: 5px;
+}
+.kpi-icon { font-size: 1.3rem; margin-bottom: 6px; }
+
+.charts-row {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.chart-box {
+  background: rgba(255,255,255,0.10);
+  border: 1px solid rgba(255,255,255,0.14);
+  border-radius: 12px;
+  padding: 18px 20px;
+  color: #fff;
+  backdrop-filter: blur(4px);
+  overflow: hidden;
+}
+.chart-box h3 {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.70);
+  margin-bottom: 14px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+#chart-bar  { flex: 2; min-width: 0; }
+#chart-pie  { flex: 1.2; min-width: 0; }
+#chart-gauge { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; }
+
+.pie-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: 12px;
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.75);
+}
+.pie-legend-item { display: flex; align-items: center; gap: 5px; }
+.pie-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -213,6 +280,42 @@ body { font-family: 'SF Hebrew', -apple-system, BlinkMacSystemFont, 'Segoe UI', 
     </div>
   </div>
   <span id="stats"></span>
+</div>
+
+<div id="infographic">
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-icon">🏢</div>
+      <div class="kpi-num" id="kpi-companies">-</div>
+      <div class="kpi-label">חברות ניהול</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">📁</div>
+      <div class="kpi-num" id="kpi-projects">-</div>
+      <div class="kpi-label">פרויקטים</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">🏠</div>
+      <div class="kpi-num" id="kpi-buildings">-</div>
+      <div class="kpi-label">בניינים</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">✅</div>
+      <div class="kpi-num" id="kpi-active">-</div>
+      <div class="kpi-label">פרויקטים פעילים</div>
+    </div>
+  </div>
+  <div class="charts-row">
+    <div class="chart-box" id="chart-bar">
+      <h3>TOP חברות לפי בניינים</h3>
+    </div>
+    <div class="chart-box" id="chart-pie">
+      <h3>התפלגות סטטוסים</h3>
+    </div>
+    <div class="chart-box" id="chart-gauge">
+      <h3>% פרויקטים פעילים</h3>
+    </div>
+  </div>
 </div>
 
 <div class="page">
@@ -251,11 +354,102 @@ function getFiltered() {
     .filter(co => co.projects.length > 0);
 }
 
+/* ── Chart helpers ── */
+function arcPath(cx, cy, r, a1, a2) {
+  const toR = d => d * Math.PI / 180;
+  const x1 = cx + r * Math.cos(toR(a1)), y1 = cy + r * Math.sin(toR(a1));
+  const x2 = cx + r * Math.cos(toR(a2)), y2 = cy + r * Math.sin(toR(a2));
+  return `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${(a2-a1)>180?1:0} 1 ${x2} ${y2} Z`;
+}
+function arcStroke(cx, cy, r, a1, a2) {
+  const toR = d => d * Math.PI / 180;
+  const x1 = cx + r * Math.cos(toR(a1)), y1 = cy + r * Math.sin(toR(a1));
+  const x2 = cx + r * Math.cos(toR(a2)), y2 = cy + r * Math.sin(toR(a2));
+  return `M ${x1} ${y1} A ${r} ${r} 0 ${(a2-a1)>180?1:0} 1 ${x2} ${y2}`;
+}
+const ST_COLOR = {'פעיל':'#22c55e','לא פעיל':'#94a3b8','דמו':'#3b82f6','ארכיון':'#f59e0b'};
+
+function renderCharts(data) {
+  const totalCo   = data.length;
+  const totalProj = data.reduce((s, co) => s + co.projects.length, 0);
+  const totalBld  = data.reduce((s, co) => s + co.totalBuildings, 0);
+  const activeCnt = data.reduce((s, co) => s + co.projects.filter(p => p.status === 'פעיל').length, 0);
+  const activePct = totalProj ? Math.round(activeCnt / totalProj * 100) : 0;
+
+  document.getElementById('kpi-companies').textContent = totalCo;
+  document.getElementById('kpi-projects').textContent  = totalProj;
+  document.getElementById('kpi-buildings').textContent = totalBld;
+  document.getElementById('kpi-active').textContent    = activePct + '%';
+
+  /* Bar chart */
+  const barBox  = document.getElementById('chart-bar');
+  const top8    = [...data].sort((a,b) => b.totalBuildings - a.totalBuildings).slice(0, 8);
+  const maxB    = top8[0]?.totalBuildings || 1;
+  const barH    = 22, gap = 8, labelW = 140, valW = 28;
+  const svgH    = top8.length * (barH + gap);
+  const svgW    = 500;
+  const areaW   = svgW - labelW - valW - 8;
+  let bSvg = `<svg width="100%" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" preserveAspectRatio="none" style="direction:ltr">`;
+  top8.forEach((co, i) => {
+    const y  = i * (barH + gap);
+    const bw = Math.max(4, (co.totalBuildings / maxB) * areaW);
+    const nm = co.company.replace(/\s*\|.*/, '').trim().slice(0, 16);
+    bSvg += `<text x="${svgW - 2}" y="${y + barH * 0.72}" text-anchor="end" font-size="11" fill="rgba(255,255,255,0.80)" font-family="inherit">${nm}</text>`;
+    bSvg += `<rect x="${svgW - labelW - bw}" y="${y}" width="${bw}" height="${barH}" rx="4" fill="#3b82f6" opacity="0.85"/>`;
+    bSvg += `<text x="${svgW - labelW - bw - 5}" y="${y + barH * 0.72}" text-anchor="end" font-size="10" fill="rgba(255,255,255,0.55)" font-family="inherit">${co.totalBuildings}</text>`;
+  });
+  bSvg += '</svg>';
+  barBox.querySelector('svg')?.remove();
+  barBox.insertAdjacentHTML('beforeend', bSvg);
+
+  /* Pie chart */
+  const pieBox = document.getElementById('chart-pie');
+  const counts = {};
+  data.forEach(co => co.projects.forEach(p => counts[p.status] = (counts[p.status]||0)+1));
+  const statuses = Object.keys(counts);
+  const tot = statuses.reduce((s, k) => s + counts[k], 0) || 1;
+  const cx = 70, cy = 70, r = 58;
+  let pSvg = `<svg width="140" height="140" viewBox="0 0 140 140">`;
+  let ang = -90;
+  statuses.forEach(st => {
+    const sweep = (counts[st] / tot) * 360;
+    const col   = ST_COLOR[st] || '#64748b';
+    pSvg += sweep >= 359.9
+      ? `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${col}" opacity="0.9"/>`
+      : `<path d="${arcPath(cx, cy, r, ang, ang+sweep)}" fill="${col}" opacity="0.9"/>`;
+    ang += sweep;
+  });
+  pSvg += `<circle cx="${cx}" cy="${cy}" r="26" fill="rgba(13,31,60,0.85)"/>`;
+  pSvg += `<text x="${cx}" y="${cy+5}" text-anchor="middle" font-size="13" font-weight="700" fill="#fff" font-family="inherit">${totalProj}</text>`;
+  pSvg += '</svg>';
+  let leg = '<div class="pie-legend">';
+  statuses.forEach(st => leg += `<div class="pie-legend-item"><span class="pie-dot" style="background:${ST_COLOR[st]||'#64748b'}"></span>${st} (${counts[st]})</div>`);
+  leg += '</div>';
+  pieBox.querySelector('svg')?.remove();
+  pieBox.querySelector('.pie-legend')?.remove();
+  pieBox.insertAdjacentHTML('beforeend', pSvg + leg);
+
+  /* Gauge chart */
+  const gaugeBox = document.getElementById('chart-gauge');
+  const gR = 68, gCx = 90, gCy = 88, sw = 13;
+  const fillEnd = 180 + activePct / 100 * 180;
+  let gSvg = `<svg width="180" height="105" viewBox="0 0 180 105">`;
+  gSvg += `<path d="${arcStroke(gCx,gCy,gR,180,360)}" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="${sw}" stroke-linecap="round"/>`;
+  if (activePct > 0) gSvg += `<path d="${arcStroke(gCx,gCy,gR,180,fillEnd)}" fill="none" stroke="#22c55e" stroke-width="${sw}" stroke-linecap="round"/>`;
+  gSvg += `<text x="${gCx}" y="${gCy-8}" text-anchor="middle" font-size="24" font-weight="700" fill="#fff" font-family="inherit">${activePct}%</text>`;
+  gSvg += `<text x="${gCx}" y="${gCy+12}" text-anchor="middle" font-size="10" fill="rgba(255,255,255,0.55)" font-family="inherit">מתוך ${totalProj} פרויקטים</text>`;
+  gSvg += '</svg>';
+  gaugeBox.querySelector('svg')?.remove();
+  gaugeBox.insertAdjacentHTML('beforeend', gSvg);
+}
+
 function render() {
   const data = getFiltered();
   const grid = document.getElementById('grid');
   const noRes = document.getElementById('no-results');
   grid.innerHTML = '';
+
+  renderCharts(data);
 
   if (data.length === 0) {
     noRes.style.display = '';
