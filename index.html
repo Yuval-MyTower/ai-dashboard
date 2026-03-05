@@ -342,10 +342,8 @@ let searchQ = '';
 
 function getFiltered() {
   return DATA
-    .map(co => ({
-      ...co,
-      totalBuildings: co.projects.reduce((s,p) => s + p.buildings.length, 0),
-      projects: co.projects.filter(p => {
+    .map(co => {
+      const projects = co.projects.filter(p => {
         if (activeFilter !== 'all' && p.status !== activeFilter) return false;
         if (!searchQ) return true;
         const q = searchQ.toLowerCase();
@@ -353,8 +351,9 @@ function getFiltered() {
           || p.name.toLowerCase().includes(q)
           || p.cities.some(c => c.toLowerCase().includes(q))
           || p.buildings.some(b => b.name.toLowerCase().includes(q));
-      })
-    }))
+      });
+      return { ...co, projects, totalBuildings: projects.reduce((s,p) => s + p.buildings.length, 0) };
+    })
     .filter(co => co.projects.length > 0);
 }
 
