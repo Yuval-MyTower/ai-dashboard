@@ -382,25 +382,25 @@ function renderCharts(data) {
   document.getElementById('kpi-active').textContent    = activePct + '%';
 
   /* Bar chart */
-  const barBox  = document.getElementById('chart-bar');
-  const top8    = [...data].sort((a,b) => b.totalBuildings - a.totalBuildings).slice(0, 8);
-  const maxB    = top8[0]?.totalBuildings || 1;
-  const barH    = 22, gap = 8, labelW = 140, valW = 28;
-  const svgH    = top8.length * (barH + gap);
-  const svgW    = 500;
-  const areaW   = svgW - labelW - valW - 8;
-  let bSvg = `<svg width="100%" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" preserveAspectRatio="none" style="direction:ltr">`;
-  top8.forEach((co, i) => {
-    const y  = i * (barH + gap);
-    const bw = Math.max(4, (co.totalBuildings / maxB) * areaW);
-    const nm = co.company.replace(/\s*\|.*/, '').trim().slice(0, 16);
-    bSvg += `<text x="${svgW - 2}" y="${y + barH * 0.72}" text-anchor="end" font-size="11" fill="rgba(255,255,255,0.80)" font-family="inherit">${nm}</text>`;
-    bSvg += `<rect x="${svgW - labelW - bw}" y="${y}" width="${bw}" height="${barH}" rx="4" fill="#3b82f6" opacity="0.85"/>`;
-    bSvg += `<text x="${svgW - labelW - bw - 5}" y="${y + barH * 0.72}" text-anchor="end" font-size="10" fill="rgba(255,255,255,0.55)" font-family="inherit">${co.totalBuildings}</text>`;
+  const barBox = document.getElementById('chart-bar');
+  const top8   = [...data].sort((a,b) => b.totalBuildings - a.totalBuildings).slice(0, 8);
+  const maxB   = top8[0]?.totalBuildings || 1;
+  let bHtml = '<div style="display:flex;flex-direction:column;gap:8px;padding:4px 0">';
+  top8.forEach(co => {
+    const pct = Math.max(2, (co.totalBuildings / maxB) * 100);
+    const nm  = co.company.replace(/\s*\|.*/, '').trim();
+    bHtml += `<div style="display:flex;align-items:center;gap:8px;direction:rtl">
+      <span style="flex:0 0 130px;font-size:11px;color:rgba(255,255,255,0.80);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${nm}</span>
+      <div style="flex:1;background:#3b82f6;opacity:0.85;height:20px;border-radius:4px;width:${pct}%;min-width:4px"></div>
+      <span style="flex:0 0 28px;font-size:10px;color:rgba(255,255,255,0.55);text-align:left">${co.totalBuildings}</span>
+    </div>`;
   });
-  bSvg += '</svg>';
-  barBox.querySelector('svg')?.remove();
-  barBox.insertAdjacentHTML('beforeend', bSvg);
+  bHtml += '</div>';
+  barBox.querySelector('div.bar-wrap')?.remove();
+  const wrap = document.createElement('div');
+  wrap.className = 'bar-wrap';
+  wrap.innerHTML = bHtml;
+  barBox.appendChild(wrap);
 
   /* Pie chart */
   const pieBox = document.getElementById('chart-pie');
